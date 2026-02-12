@@ -1,0 +1,38 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: meetx-backend
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/PROJECT_ID/meetx-backend:latest
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "4000"
+            - name: MONGODB_URI
+              value: ""
+            - name: JWT_ACCESS_SECRET
+              value: ""
+            - name: JWT_ACCESS_TTL
+              value: "900"
+            - name: REFRESH_TTL_DAYS
+              value: "7"
+            - name: COOKIE_DOMAIN
+              value: ""
+            - name: COOKIE_SECURE
+              value: "true"
+            - name: COOKIE_SAMESITE
+              value: "none"
+            - name: CORS_ORIGIN
+              value: ""
+            - name: SWAGGER_ENABLED
+              value: "false"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: GCS_PROJECT_ID
+              value: ""
+            - name: GCS_BUCKET
+              value: ""

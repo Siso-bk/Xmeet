@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: meetx-backend
+    env: docker
+    plan: starter
+    rootDir: .
+    dockerfilePath: meetx-backend/Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_ACCESS_TTL
+        value: 900
+      - key: REFRESH_TTL_DAYS
+        value: 7
+      - key: PASSWORD_RESET_TTL_MIN
+        value: 30
+      - key: PERSONALAI_CODE_TTL_MIN
+        value: 10
+      - key: PERSONALAI_SERVICE_URL
+        sync: false
+      - key: PERSONALAI_SERVICE_KEY
+        sync: false
+      - key: PAI_API_BASE
+        sync: false
+      - key: PAI_SERVICE_KEY
+        sync: false
+      - key: PAI_TENANT_ID
+        sync: false
+      - key: PAI_PLATFORM
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: COOKIE_SECURE
+        value: true
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: CORS_ORIGIN
+        sync: false
+      - key: SWAGGER_ENABLED
+        value: false
+      - key: LOG_LEVEL
+        value: info
+      - key: GCS_PROJECT_ID
+        sync: false
+      - key: GCS_BUCKET
+        sync: false
+
+  - type: web
+    name: meetx-ai-services
+    env: docker
+    plan: starter
+    rootDir: .
+    dockerfilePath: meetx-ai-services/Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4100
+      - key: CORS_ORIGIN
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: PERSONALAI_API_KEY
+        sync: false

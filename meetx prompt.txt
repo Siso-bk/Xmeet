@@ -1,0 +1,424 @@
+
+YOU ARE CODEX. Generate a FULL production-grade MEETX project as 4 separate repositories inside ONE parent folder named `repo root/`. Use Next.js + TypeScript for frontend, NestJS + TypeScript for backend, Node.js + TypeScript for AI services, MongoDB for DB, and Google Cloud Storage (GCS) for uploads.
+
+IMPORTANT RULES
+- Create EXACTLY these repos (folders) under `repo root/`:
+  1) `meetx-shared`
+  2) `meetx-backend`
+  3) `meetx-ai-services`
+  4) `meetx-frontend`
+- Each repo must be independently runnable with its own package.json, .env.example, README, and Dockerfile where applicable.
+- Use strict TypeScript everywhere.
+- Use Zod for validation and shared contracts.
+- Backend auth must be internal/local now (email/password), but designed to integrate later with external OIDC (“Personal AI”) WITHOUT REWRITE:
+  - User model includes `authProvider: "local" | "personalai"` and optional `externalId`.
+- Use enterprise patterns: modular NestJS, refresh token rotation, RBAC roles, rate limiting, logging, swagger docs.
+- Use cookie-based refresh token (HttpOnly) and short-lived access token.
+- Do NOT include any paid vendor SDKs (no Auth0, no Clerk). Realtime chat can be basic REST for MVP (no Pusher).
+- Keep AI services isolated (keys live only in ai repo).
+- Provide a root-level `README.md` explaining how to run all repos locally.
+
+========================================
+0) ROOT STRUCTURE
+========================================
+Create:
+repo root/
+  README.md
+  docker-compose.yml   (for local dev: mongo + optional services)
+  .gitignore
+  meetx-shared/
+  meetx-backend/
+  meetx-ai-services/
+  meetx-frontend/
+
+Root README must explain:
+- prerequisites
+- how to start Mongo via docker compose
+- how to run each repo
+- environment variables
+- typical dev workflow
+
+Root docker-compose.yml:
+- mongo: latest stable
+- mongo-express optional (disabled by default via profile)
+Expose mongo on 27017.
+
+========================================
+1) REPO: meetx-shared (Option A shared contracts)
+========================================
+Goal: single source of truth for types + Zod validators + API contracts.
+
+Create `meetx-shared/` with:
+- package name: `@meetx/shared`
+- build tool: tsup
+- exports ESM + CJS + types
+- depends on: zod
+
+Folder structure:
+meetx-shared/
+  src/
+    index.ts
+    types/
+      common.ts
+      auth.ts
+      profile.ts
+      matching.ts
+      messaging.ts
+    validators/
+      auth.ts
+      profile.ts
+      matching.ts
+      messaging.ts
+    contracts/
+      v1/
+        index.ts
+        auth.ts
+        profile.ts
+        feed.ts
+        matches.ts
+        messages.ts
+      index.ts
+  tsup.config.ts
+  tsconfig.json
+  package.json
+  README.md
+
+Define in types:
+- ApiResponse<T>, ApiError, Paginated<T>
+- Auth: Role ("user" | "admin" | "org_admin"), AuthProvider ("local" | "personalai"), UserPublic, Tokens
+- Profile: ProfileVisibility, Profile
+- Matching: SwipeAction ("like"|"skip"), MatchSummary
+- Messaging: Message, SendMessagePayload
+
+Define in validators (Zod):
+- RegisterDto, LoginDto
+- UpsertProfileDto
+- SwipeDto
+- SendMessageDto
+
+Define in contracts/v1:
+- Auth endpoints request/response types
+- Profile endpoints request/response types
+- Feed endpoints request/response types
+- Matches endpoints request/response types
+- Messages endpoints request/response types
+
+Ensure `src/index.ts` exports everything.
+
+Add README explaining how to build and how other repos install it:
+- local dev: `npm i ../meetx-shared` (file dependency)
+- later: publish to GitHub Packages
+
+========================================
+2) REPO: meetx-backend (NestJS API)
+========================================
+Goal: enterprise-grade API with local auth now, Personal AI OIDC-ready later.
+
+Create NestJS app with:
+- NestJS, TypeScript
+- ConfigModule (dotenv)
+- MongoDB via mongoose
+- Swagger (OpenAPI)
+- Helmet + CORS
+- Throttler (rate limiting)
+- Validation: use Zod (via shared validators), NOT class-validator
+
+Install `@meetx/shared` via local file dependency:
+- package.json dependencies includes `"@meetx/shared": "file:../meetx-shared"`
+
+Backend folder structure:
+meetx-backend/
+  src/
+    main.ts
+    app.module.ts
+    common/
+      decorators/
+        current-user.decorator.ts
+        roles.decorator.ts
+      guards/
+        jwt-auth.guard.ts
+        roles.guard.ts
+      interceptors/
+        api-response.interceptor.ts
+      utils/
+        cookies.ts
+        security.ts
+    config/
+      configuration.ts
+    modules/
+      auth/
+        auth.module.ts
+        auth.controller.ts
+        auth.service.ts
+        strategies/
+          jwt.strategy.ts
+        dto/
+          auth.dto.ts (re-export zod schemas or typed wrappers)
+      users/
+        users.module.ts
+        users.service.ts
+        schemas/
+          user.schema.ts
+      sessions/
+        sessions.module.ts
+        sessions.service.ts
+        schemas/
+          session.schema.ts
+      profiles/
+        profiles.module.ts
+        profiles.controller.ts
+        profiles.service.ts
+        schemas/
+          profile.schema.ts
+      feed/
+        feed.module.ts
+        feed.controller.ts
+        feed.service.ts
+      swipes/
+        swipes.module.ts
+        swipes.controller.ts
+        swipes.service.ts
+        schemas/
+          swipe.schema.ts
+      matches/
+        matches.module.ts
+        matches.controller.ts
+        matches.service.ts
+        schemas/
+          match.schema.ts
+      messages/
+        messages.module.ts
+        messages.controller.ts
+        messages.service.ts
+        schemas/
+          message.schema.ts
+      uploads/
+        uploads.module.ts
+        uploads.controller.ts
+        uploads.service.ts
+  test/
+  package.json
+  tsconfig.json
+  Dockerfile
+  .env.example
+  README.md
+
+Backend features (MUST IMPLEMENT):
+A) Auth (local)
+- POST /v1/auth/register
+- POST /v1/auth/login
+- POST /v1/auth/refresh
+- POST /v1/auth/logout
+- GET  /v1/auth/me
+Implementation:
+- Password hashing with bcrypt
+- Access token JWT: 15 min
+- Refresh token: stored as HttpOnly cookie `meetx_rt`
+- Refresh token rotation:
+  - store hashed refresh token in `sessions` collection with expiry
+  - each refresh revokes old session and creates new session/token
+- Logout revokes session (by deleting/revoking current refresh token)
+- RBAC roles included in JWT
+
+B) Profiles
+- POST/PATCH /v1/profiles/me (upsert)
+- GET /v1/profiles/:id
+- GET /v1/profiles/me
+
+C) Feed (discovery)
+- GET /v1/feed
+Return paginated Profile cards excluding:
+- self
+- previously swiped profiles
+
+D) Swipes
+- POST /v1/swipes { toUserId, action }
+Creates swipe record and if mutual like => creates match.
+
+E) Matches
+- GET /v1/matches (list)
+- GET /v1/matches/:id (summary)
+
+F) Messages
+- GET /v1/matches/:id/messages
+- POST /v1/matches/:id/messages { text }
+Only allowed if user is member of match.
+
+G) Uploads (GCS signed URL)
+- POST /v1/uploads/sign
+Input: { filename, contentType }
+Output: { uploadUrl, publicUrl }
+Implementation:
+- Use @google-cloud/storage
+- Create signed URL for PUT
+- Use bucket from env
+Note: For local dev, allow a “mock mode” when GCS creds missing.
+
+H) AI integration (stub calls)
+- Backend config includes AI base URL and a service that can call:
+  - POST /ai/match/rank
+  - POST /ai/profile/coach
+but keep optional; backend should run without AI service.
+
+Backend requirements:
+- Swagger at /docs
+- Consistent ApiResponse shape from @meetx/shared
+- Central error handling (HttpException filter)
+- Use cookies securely in prod:
+  - secure true when NODE_ENV=production
+  - sameSite=Lax
+- CORS configured for frontend origin from env
+
+.env.example for backend:
+- NODE_ENV=
+- PORT=4000
+- MONGODB_URI=mongodb://localhost:27017/meetx
+- JWT_ACCESS_SECRET=
+- JWT_ACCESS_EXPIRES_IN=15m
+- JWT_REFRESH_SECRET=
+- JWT_REFRESH_EXPIRES_DAYS=14
+- FRONTEND_ORIGIN=http://localhost:3000
+- COOKIE_DOMAIN=localhost
+- GCS_BUCKET=
+- GCP_PROJECT_ID=
+- GCP_SERVICE_ACCOUNT_JSON= (optional; support file path alternative)
+- AI_SERVICE_BASE_URL=http://localhost:5001
+
+Dockerfile:
+- multi-stage build
+- expose 4000
+- run `node dist/main.js`
+
+README:
+- how to run, how to test endpoints, cookie auth notes
+
+========================================
+3) REPO: meetx-ai-services (AI microservice)
+========================================
+Goal: isolate AI keys and AI endpoints.
+
+Create Node.js + TypeScript service (Express or Fastify) with:
+- POST /ai/profile/coach
+- POST /ai/message/draft
+- POST /ai/match/rank
+- POST /ai/match/explain
+Return mocked AI results by default (no external API calls required).
+Design it so later you can plug in real LLM provider.
+
+Install `@meetx/shared` via `"file:../meetx-shared"`
+
+Folder structure:
+meetx-ai-services/
+  src/
+    server.ts
+    routes/
+      profile.ts
+      message.ts
+      match.ts
+    services/
+      coach.service.ts
+      draft.service.ts
+      rank.service.ts
+      explain.service.ts
+    middleware/
+      auth.ts (simple service token header)
+  package.json
+  tsconfig.json
+  Dockerfile
+  .env.example
+  README.md
+
+Security:
+- Require `X-SERVICE-TOKEN` header for all endpoints.
+- Token value set in env.
+
+.env.example:
+- PORT=5001
+- SERVICE_TOKEN=
+- NODE_ENV=
+
+Dockerfile:
+- expose 5001
+
+AI endpoint behavior:
+- /ai/profile/coach takes { bio, goals, lookingFor } returns improved text + bullet suggestions
+- /ai/message/draft takes { context, tone } returns 3 drafts
+- /ai/match/rank takes { meProfile, candidates[] } returns ranked list with scores and reasons
+- /ai/match/explain takes { meProfile, candidateProfile } returns explanation
+
+========================================
+4) REPO: meetx-frontend (Next.js + TS)
+========================================
+Goal: professional global UI for MEETX.
+
+Create Next.js App Router project with:
+- TypeScript
+- Tailwind + shadcn/ui
+- Forms with react-hook-form + zod (use shared validators)
+- API client layer using fetch with credentials (cookies)
+- Pages:
+  - / (landing)
+  - /auth/login
+  - /auth/register
+  - /onboarding (create profile)
+  - /feed (discovery)
+  - /profile/me
+  - /profile/[id]
+  - /matches
+  - /chat/[matchId]
+  - /settings
+
+Install `@meetx/shared` via `"file:../meetx-shared"`.
+
+Frontend requirements:
+- Store NO refresh token in JS (backend uses cookies).
+- API calls include `credentials: "include"`.
+- Create a simple `useMe()` hook that calls /v1/auth/me.
+- Guard routes: if not logged in redirect to /auth/login.
+
+UI requirements:
+- clean dark theme by default (use your earlier palette):
+  - Background #0B0F14, Surface #121820, Elevated #18212B, Text #E6EDF3, Muted #9BA8B5, Borders #23303C
+- Provide a basic navbar and layout.
+
+Data flow:
+- register/login forms -> call backend -> redirect to /onboarding or /feed
+- onboarding saves profile -> feed loads candidates
+- feed cards have Like/Skip buttons -> POST /v1/swipes -> on mutual like show toast “Matched!”
+- matches list -> open chat -> messages list + send box
+
+Frontend environment:
+.env.example:
+- NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+
+Add a small proxy helper to prepend base URL.
+
+========================================
+5) LOCAL DEV QUALITY
+========================================
+- Ensure all repos have `npm run dev` working.
+- Ensure backend and AI have `npm run start:dev` or `npm run dev`.
+- Provide scripts:
+  - shared: build/dev
+  - backend: dev, build, start
+  - ai: dev, build, start
+  - frontend: dev, build, start
+
+- Add basic seed script (optional) in backend to create demo users/profiles.
+
+========================================
+6) DELIVERABLES
+========================================
+After generating code:
+- Print the tree of each repo
+- Print exact commands to run locally:
+  1) Start mongo (docker compose)
+  2) Build shared
+  3) Start backend
+  4) Start ai services
+  5) Start frontend
+- Include a quick “Test Checklist”:
+  - register -> onboarding -> feed -> swipe -> match -> chat
+
+NOW CREATE ALL FILES with complete content (no TODO placeholders for core flows). Ensure everything compiles.
+```

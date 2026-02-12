@@ -1,0 +1,16 @@
+node_modules
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.next
+.dist
+.dist/
+dist
+coverage
+logs
+*.log
+.DS_Store
+.vercel
+.turbo
