@@ -14,9 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
 
@@ -26,13 +26,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Build shared
         working-directory: meetx-shared
-        run: npm install && npm run build
+        run: npm ci && npm run build
       - name: Build backend
         working-directory: meetx-backend
-        run: npm install && npm run build
+        run: npm ci && npm run build
 
   ai:
     runs-on: ubuntu-latest
@@ -43,9 +43,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
 
@@ -55,10 +55,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Build shared
         working-directory: meetx-shared
-        run: npm install && npm run build
+        run: npm ci && npm run build
       - name: Build frontend
         working-directory: meetx-frontend
-        run: npm install && npm run build
+        run: npm ci && npm run build
+
