@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@meetx/shared": "file:../meetx-shared",
-    "next": "14.2.5",
+    "next": "^15.5.12",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -27,4 +27,3 @@
     "node": ">=20"
   }
 }
-

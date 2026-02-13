@@ -5,7 +5,7 @@ import Footer from '../components/Footer'
 import PageTransition from '../components/PageTransition'
 
 const sora = Sora({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
-const bodoni = Bodoni_Moda({ subsets: ['latin'], variable: '--font-display', display: 'swap' })
+const bodoni = Bodoni_Moda({ subsets: ['latin'], variable: '--font-display', display: 'swap', adjustFontFallback: false })
 
 export const metadata = {
   title: 'MEETX',
@@ -35,3 +35,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
+
