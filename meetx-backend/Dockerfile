@@ -16,13 +16,10 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=builder /app/meetx-backend/package*.json ./
-COPY --from=builder /app/meetx-backend/node_modules ./node_modules
-COPY --from=builder /app/meetx-backend/dist ./dist
-COPY --from=builder /app/meetx-shared/package.json ./meetx-shared/package.json
-COPY --from=builder /app/meetx-shared/dist ./meetx-shared/dist
-COPY --from=builder /app/meetx-backend/.env.example ./
+COPY --from=builder /app/meetx-shared ./meetx-shared
+COPY --from=builder /app/meetx-backend ./meetx-backend
 
+WORKDIR /app/meetx-backend
 RUN npm prune --omit=dev
 
 EXPOSE 4000
