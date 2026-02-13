@@ -19,6 +19,8 @@ ENV NODE_ENV=production
 COPY --from=builder /app/meetx-backend/package*.json ./
 COPY --from=builder /app/meetx-backend/node_modules ./node_modules
 COPY --from=builder /app/meetx-backend/dist ./dist
+COPY --from=builder /app/meetx-shared/package.json ./meetx-shared/package.json
+COPY --from=builder /app/meetx-shared/dist ./meetx-shared/dist
 COPY --from=builder /app/meetx-backend/.env.example ./
 
 RUN npm prune --omit=dev
