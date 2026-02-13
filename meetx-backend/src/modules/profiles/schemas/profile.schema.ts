@@ -41,6 +41,5 @@ export class Profile {
 }
 
 export const ProfileSchema = SchemaFactory.createForClass(Profile)
-ProfileSchema.index({ userId: 1 }, { unique: true })
 ProfileSchema.set('toJSON', { virtuals: true })
 ProfileSchema.set('toObject', { virtuals: true })

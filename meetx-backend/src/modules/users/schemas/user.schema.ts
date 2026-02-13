@@ -26,6 +26,5 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)
-UserSchema.index({ email: 1 }, { unique: true })
 UserSchema.set('toJSON', { virtuals: true })
 UserSchema.set('toObject', { virtuals: true })
